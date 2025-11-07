@@ -1,9 +1,7 @@
 # Electricity Grid Price Calculator
 
 ## Overview
-This project calculates electricity grid prices scaled by load profiles for different scenarios
-and regional entities in Sweden. It handles various components of electricity pricing including
-taxes, fixed fees, power charges, and energy charges.
+This project calculates electricity grid prices scaled by load profiles for different scenarios and regional entities in Sweden. It handles various components of electricity pricing including taxes, fixed fees, power charges, and energy charges.
 
 ## Features
 - Calculate grid prices for multiple municipalities
@@ -19,6 +17,48 @@ taxes, fixed fees, power charges, and energy charges.
 - Seasonal and time-of-use pricing
 - High load period handling
 - Data visualization capabilities
+
+## Data (inputs)
+All input data files are expected in the `data/` directory. Below are the common files used by the code and the expected structure:
+
+- `8760hours.xlsx`
+  - Purpose: timestamps for 8760 hours (non-leap year) used to expand 24‑hour profiles.
+  - Expected columns (example): `Timestamp`, `Year`, `Month`, `Day`, `Hour`
+  - Notes: If missing the code can generate timestamps for a given year.
+
+- `Load profiles` (Excel/CSV)
+  - Purpose: 24‑hour example profiles to tile into 8760 (one row per hour 0–23).
+  - Expected columns: `hours`, `Max Power (kW)`, `Base load profile`, `Flat load profile`, `Shaved load profile`
+  - Units: profiles are in kWh per hour (or normalized values); code expects 24 rows.
+
+- `Network pricing` (Excel/CSV)
+  - Purpose: network (DSO) tariffs and fees per municipality / RE.
+  - Required columns (examples used in code):
+    - `Myndighetsavgifter Kr, exkl. moms` (authority/tax fees, SEK)
+    - `Fast avgift Kr, exkl. moms` (fixed annual fee, SEK)
+    - `Abonnerad effekt kr/kW` (subscribed capacity cost, SEK/kW)
+    - Seasonal kWh columns like `Winter Hög öre/kWh`, `Winter Låg öre/kWh`, `Summer Hög öre/kWh`, `Shoulder Låg öre/kWh`
+  - Notes: Energy rate columns are often given in öre/kWh — the code converts to SEK/kWh (divide by 100). Validate column names match exactly or adapt mapping.
+
+- `High-load definitions` (Excel/CSV)
+  - Purpose: define specific high-load hours per RE (overrides simple month-based rule).
+  - Expected columns: index/key = RE (municipality), `StartHour`, `EndHour`
+  - Behavior: If missing or values are `-`/0 the code falls back to month-based high-load months.
+
+<> Add something about the vattenfall data used
+- `Elspot / market prices` (CSV/Excel)
+  - Purpose: hourly spot prices to include spot energy cost.
+  - Expected columns: timestamp column and bidding-area price columns (e.g. `SE3`) or a `PriceArea` column plus `Price`.
+  - Units: common formats are SEK/MWh or öre/kWh — confirm and convert to SEK/kWh before combining:
+    - SEK/MWh -> divide by 1000 to get SEK/kWh.
+    - öre/kWh -> divide by 100 to get SEK/kWh.
+
+- Example file locations (repo):
+  - `data/8760hours.xlsx`
+  - `data/EV-bus-charging-needs-Arsalan.xlsx`
+  - `data/network_prices_YYYY.xlsx`
+  - `data/elspot_YYYY.csv`
+  - `data/highload_definitions.xlsx`
 
 ## Prerequisites
 - Python 3.8+
