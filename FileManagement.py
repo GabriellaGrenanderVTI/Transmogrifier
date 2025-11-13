@@ -23,8 +23,6 @@ def readEffectCustomerPrices(effectCustomerType, year):
     df = pd.read_excel('data/effektkunder_2011-2023.xlsx', header = [0,1,2])
     
     # Keep the columns to combine with result later on
-    # Needed to do it this way since we always want these columns, and making them
-    # a multiindex made me lose the name of the columns
     df2 = df[['REnummer', 'Län', 'Org.nr', 'Nätföretag', 'REnamn']]
     df2 = df2.droplevel([1,2], axis=1)
     
@@ -96,15 +94,6 @@ def readElspotPrices_Vattenfall(year, biddingArea): # 2019, 2023
     df = pd.concat(parts, ignore_index=True)
     df = df.drop_duplicates(subset=['Tidsperiod'])
     df['Tidsperiod'] = df['Tidsperiod'].dt.strftime('%Y-%m-%d %H:%M')
-
-    # df = pd.read_excel(dataFolder / 'data.xlsx', names = columnNames)
-
-    # for i in range(1,53):
-    #     df_i = pd.read_excel(dataFolder / f'data ({i}).xlsx', names = columnNames, parse_dates=['Tidsperiod'])
-    #     if i == 52: # Remove data from next year
-    #         filter = df_i['Tidsperiod'].str.contains(str(year+1))
-    #         df_i = df_i[~filter]
-    #     df = pd.concat([df, df_i], axis = 0)
 
     # Adjust for lost hour due to summertime (wintertime hour is already included in data)
     if year == 2019:
@@ -193,14 +182,14 @@ def readLoadProfile(path):
     return pd.read_excel(path)
 
 def readModelingAreas(sheet):
-    return pd.read_excel('data/modelingAreas.xlsx', sheet_name=sheet)
+    return pd.read_excel('data/ModelingAreas.xlsx', sheet_name=sheet)
     
 def readNetworkConcessionData(year):
     if year == 2023:
-        df = pd.read_excel("data/Natkoncessioner_per_kommun_med_kontaktuppgifter_fixad_2023.xlsx")
+        df = pd.read_excel("data/Koncessioner/Natkoncessioner_per_kommun_med_kontaktuppgifter_fixad_2023.xlsx")
         return df[['Kommunkod', 'Kommunnamn', 'Koncession', 'Spänning', 'Red.enhet', 'Företagsn']]
     elif year == 2024:
-        df = pd.read_csv("data/KommunKoncession_med_kontaktuppgifter_2024.csv")
+        df = pd.read_csv("data/Koncessioner/KommunKoncession_med_kontaktuppgifter_2024.csv")
         return df[['kommunkod', 'kommunnamn', 'KONCESSION', 'Spanning', 'Enhet', 'Företagsnamn']]
     else:
         raise ValueError("This is not a valid year for network concession data")

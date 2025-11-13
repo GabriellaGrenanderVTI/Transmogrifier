@@ -21,16 +21,19 @@ This project calculates electricity grid prices scaled by load profiles for diff
 ## Data (inputs)
 All input data files are expected in the `data/` directory. Below are the common files used by the code and the expected structure:
 
+<!--- This works for now, but is an ugly solution. -->
 - `8760hours.xlsx`
   - Purpose: timestamps for 8760 hours (non-leap year) used to expand 24‑hour profiles.
   - Expected columns (example): `Timestamp`, `Year`, `Month`, `Day`, `Hour`
   - Notes: If missing the code can generate timestamps for a given year.
 
+<!--- This needs looking over. It is data in the project, but we should be able to take any load profile.-->
 - `Load profiles` (Excel/CSV)
   - Purpose: 24‑hour example profiles to tile into 8760 (one row per hour 0–23).
   - Expected columns: `hours`, `Max Power (kW)`, `Base load profile`, `Flat load profile`, `Shaved load profile`
   - Units: profiles are in kWh per hour (or normalized values); code expects 24 rows.
 
+<!--- Verify that we have the latest file (2025) included -->
 - `Network pricing` (Excel/CSV)
   - Purpose: network (DSO) tariffs and fees per municipality / RE.
   - Required columns (examples used in code):
@@ -40,12 +43,13 @@ All input data files are expected in the `data/` directory. Below are the common
     - Seasonal kWh columns like `Winter Hög öre/kWh`, `Winter Låg öre/kWh`, `Summer Hög öre/kWh`, `Shoulder Låg öre/kWh`
   - Notes: Energy rate columns are often given in öre/kWh — the code converts to SEK/kWh (divide by 100). Validate column names match exactly or adapt mapping.
 
+<!--- This should be noted that it is incomplete atm, and will need to be looked over -->
 - `High-load definitions` (Excel/CSV)
   - Purpose: define specific high-load hours per RE (overrides simple month-based rule).
   - Expected columns: index/key = RE (municipality), `StartHour`, `EndHour`
   - Behavior: If missing or values are `-`/0 the code falls back to month-based high-load months.
 
-<> Add something about the vattenfall data used
+<!--- Add something about the vattenfall data used -->
 - `Elspot / market prices` (CSV/Excel)
   - Purpose: hourly spot prices to include spot energy cost.
   - Expected columns: timestamp column and bidding-area price columns (e.g. `SE3`) or a `PriceArea` column plus `Price`.
@@ -123,7 +127,7 @@ The script generates two CSV files:
 [Your license information here]
 
 ## Contributors
-- [Gabriella Grenander/VTI]
+- Gabriella Grenander/VTI
 
 ## Contact
 [gabriella.grenander@vti.se]

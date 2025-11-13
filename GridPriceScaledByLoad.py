@@ -16,6 +16,7 @@ and municipalities in Sweden.
 from pathlib import Path
 from typing import Tuple, List
 
+import calendar
 import logging
 import numpy as np
 import pandas as pd
@@ -61,27 +62,94 @@ def daysInMonth(month: int) -> int:
         raise ValueError("This is not a valid month number")
 
 
-def reshapeLoadProfile(loadProfile_df: pd.DataFrame, year: int) -> pd.DataFrame:
+def reshapeLoadProfile(loadProfile_df: pd.DataFrame, year: int, scenario_cols: list = None) -> pd.DataFrame:
     """
-    Distribute a 24-hour load profile across 365 days (8760 hours).
-
+    Expand a 24-hour load profile to cover a full year (8760 hours) with timestamps.
+    Handles multiple scenario columns simultaneously.
+    
     Args:
-        loadProfile_df (pd.DataFrame): DataFrame containing 24-hour load profile
-        year (int): Year to assign to the reshaped profile
-
+        loadProfile_df (pd.DataFrame): DataFrame containing 24-hour load profiles
+        year (int): Year to generate timestamps for
+        scenario_cols (list): List of column names containing load values. 
+                            If None, uses all columns except 'hours'
+        
     Returns:
-        pd.DataFrame: Reshaped load profile with 8760 hours and timestamps
+        pd.DataFrame: DataFrame with 8760 rows containing:
+            - Timestamp: datetime index for each hour
+            - Year: year number
+            - Month: 1-12
+            - Day: 1-31
+            - Hour: 0-23
+            - Season: 'Winter', 'Spring', 'Summer', 'Fall'
+            - DayType: 'Weekday' or 'Weekend'
+            - Load values for each scenario column
+            
+    Raises:
+        ValueError: If loadProfile_df doesn't have exactly 24 rows
+        KeyError: If any scenario_col is not found in loadProfile_df
     """
-    ts_8760 = pd.read_excel('data/8760hours.xlsx')
-    loadProfile_8760 = np.tile(loadProfile_df, [365,1])
-    loadProfile_8760 = pd.DataFrame(data = loadProfile_8760, columns = ['hours', 'Max Power (kW)', 'Base load profile', 'Flat load profile', 'Shaved load profile'])
-    loadProfile_8760 = loadProfile_8760.drop('hours', axis=1)
-    loadProfile_8760 = loadProfile_8760.astype('int32')
+    # Validate input
+    if len(loadProfile_df) != 24:
+        raise ValueError(f"Load profile must have exactly 24 rows, got {len(loadProfile_df)}")
     
-    loadProfile = pd.concat([ts_8760, loadProfile_8760], axis = 1)
-    loadProfile['Year'] = year
+    # If no scenario columns specified, use all except 'hours'
+    if scenario_cols is None:
+        scenario_cols = [col for col in loadProfile_df.columns if col != 'hours']
     
-    return loadProfile
+    # Validate all scenario columns exist
+    missing_cols = [col for col in scenario_cols if col not in loadProfile_df.columns]
+    if missing_cols:
+        raise KeyError(f"Columns not found in load profile: {missing_cols}")
+    
+    # Create timestamp range for the full year
+    timestamps = pd.date_range(
+        start=f'{year}-01-01',
+        end=f'{year}-12-31 23:00:00',
+        freq='H'
+    )
+
+    # Remove February 29th if it's a leap year
+    if calendar.isleap(year):
+        leap_day_mask = ~((timestamps.month == 2) & (timestamps.day == 29))
+        timestamps = timestamps[leap_day_mask]
+        
+    # Verify we have exactly 8760 hours
+    if len(timestamps) != 8760:
+        raise ValueError(f"Expected 8760 hours, got {len(timestamps)} hours after timestamp generation")
+    
+    # Create base dataframe with timestamps
+    df = pd.DataFrame({
+        'Timestamp': timestamps,
+        'Year': timestamps.year,
+        'Month': timestamps.month,
+        'Day': timestamps.day,
+        'Hour': timestamps.hour,
+        'DayOfWeek': timestamps.dayofweek  # Monday=0, Sunday=6
+    })
+    
+    # Add weekday/weekend information
+    df['DayType'] = df['DayOfWeek'].map(lambda x: 'Weekend' if x >= 5 else 'Weekday')
+    
+    # Add season based on month
+    def get_season(month):
+        if month in [12, 1, 2]:
+            return 'Winter'
+        elif month in [3, 4, 5]:
+            return 'Spring'
+        elif month in [6, 7, 8]:
+            return 'Summer'
+        else:  # 9, 10, 11
+            return 'Fall'
+    
+    df['Season'] = df['Month'].map(get_season)
+    
+    # Tile each scenario column to fill the year
+    for col in scenario_cols:
+        load_values = loadProfile_df[col].to_numpy()
+        tiled_values = np.tile(load_values, 365)
+        df[col] = tiled_values
+    
+    return df
 
 
 def isHighLoadMonth(month: int) -> bool:
